@@ -1,0 +1,82 @@
+import json
+import tkinter as tk
+from PIL import Image, ImageTk
+import os
+
+class SlideShow:
+    def __init__(self, root):
+        self.root = root
+        self.load_config()
+
+        root.title(self.config.get("windowTitle", "Slideshow"))
+        root.geometry(f"{self.config['windowWidth']}x{self.config['windowHeight']}")
+        root.configure(bg="black")
+
+        self.current_slide = 0
+        self.images_cache = []
+
+        # UI Elements
+        self.title_label = tk.Label(root, text="", fg="white", bg="black",
+                                    font=("Helvetica", self.config["fontTitleSize"], "bold"))
+        self.title_label.pack(pady=20)
+
+        self.desc_label = tk.Label(root, text="", fg="gray", bg="black",
+                                   font=("Helvetica", self.config["fontDescriptionSize"]))
+        self.desc_label.pack()
+
+        self.images_frame = tk.Frame(root, bg="black")
+        self.images_frame.pack(pady=20)
+
+        self.next_button = tk.Button(root, text="Next →", command=self.next_slide,
+                                     bg="#222222", fg="white", font=("Helvetica", 14))
+        self.next_button.pack(side="right", padx=10, pady=10)
+
+        self.prev_button = tk.Button(root, text="← Back", command=self.prev_slide,
+                                     bg="#222222", fg="white", font=("Helvetica", 14))
+        self.prev_button.pack(side="left", padx=10, pady=10)
+
+        self.load_slide()
+
+    def load_config(self):
+        with open("config.json", "r") as f:
+            self.config = json.load(f)
+        self.slides = self.config["slides"]
+
+    def load_slide(self):
+        slide = self.slides[self.current_slide]
+
+        # Update text
+        self.title_label.config(text=slide["slideTitle"])
+        self.desc_label.config(text=slide["slideDescription"])
+
+        # Clear old images
+        for widget in self.images_frame.winfo_children():
+            widget.destroy()
+        self.images_cache.clear()
+
+        # Load new images
+        for img_path in slide["slideImageLinks"]:
+            if os.path.exists(img_path):
+                img = Image.open(img_path)
+                img = img.resize((200, 120))
+                img_tk = ImageTk.PhotoImage(img)
+                self.images_cache.append(img_tk)  # Prevent garbage collection
+
+                label = tk.Label(self.images_frame, image=img_tk, bg="black")
+                label.pack(side="left", padx=10)
+
+    def next_slide(self):
+        if self.current_slide < len(self.slides) - 1:
+            self.current_slide += 1
+            self.load_slide()
+
+    def prev_slide(self):
+        if self.current_slide > 0:
+            self.current_slide -= 1
+            self.load_slide()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    SlideShow(root)
+    root.mainloop()
